@@ -22,9 +22,6 @@ class EccUser;
 template<class F>
 class EccNetwork;
 
-template<class F>
-class EccTest;
-
 /* 無限大 */
 template<class F>
 class FInf: public F {
@@ -257,14 +254,4 @@ auto EccNetwork<F>::print(std::ostream& os) const -> void {
   this->alice.print(os);
   os << "Bob\t";
   this->bob.print(os);
-}
-
-template<class F>
-auto EccTest<F>::execute() -> void {
-  EccNetwork<F> comm;
-  comm.publish();
-  comm.calc();
-  comm.print();
-  std::cout << std::endl;
-  comm.crack();
 }
