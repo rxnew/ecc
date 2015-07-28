@@ -2,6 +2,7 @@
 *~
 \#*\#
 *.bak
+a.out
 .svn/
 GPATH
 GRTAGS
