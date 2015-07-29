@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <limits>
 #include <random>
 #include <cassert>
 #include "field.hpp"
@@ -40,6 +41,7 @@ class FInf : public F {
 
 /**
  * @brief 楕円曲線上の点
+ * @note 無限遠点の場合はFInfクラスを用いる
  */
 template<class F>
 class EccPoint {
@@ -53,9 +55,7 @@ class EccPoint {
   auto operator==(const EccPoint& obj) const -> bool;
   auto operator!=(const EccPoint& obj) const -> bool;
   auto operator-() const -> EccPoint;
-  inline auto isInfinity() const -> bool {
-    return this->x == FInf<F>() & this->y == FInf<F>();
-  }
+  auto isInfinity() const -> bool;
   template<class T>
   friend auto operator<<(std::ostream& os, const EccPoint<T>& obj)
     -> std::ostream&;
@@ -79,15 +79,9 @@ class Ecc {
     -> EccPoint<F>;
   template<class U>
   auto mult(const EccPoint<F>& obj, U n) const -> EccPoint<F>;
-  inline auto calcLeft(const F& y) const -> F {
-    return ::pow(y, 2);
-  }
-  inline auto calcRight(const F& x) const -> F {
-    return ::pow(x, 3) + this->a * x + this->b;
-  }
-  inline auto isIncluded(const EccPoint<F>& obj) const -> bool {
-    return obj.isInfinity() | this->calcLeft(obj.y) == this->calcRight(obj.x);
-  }
+  auto calcLeft(const F& y) const -> F;
+  auto calcRight(const F& x) const -> F;
+  auto isIncluded(const EccPoint<F>& obj) const -> bool;
   static auto getParam(F& x, F& y, F& a, F& b) -> void;
 };
 
@@ -101,49 +95,37 @@ template<class F>
 class EccUser {
  private:
   EccPoint<F> common_key;
-  decltype(F::modulo()) secret_key;
+  decltype(F::order()) secret_key;
  public:
   Ecc<F> ecc;
   EccPoint<F> public_key, partner_key, base;
   EccUser();
   auto setSecretKey() -> void;
-  inline auto setPublicKey() -> void {
-    public_key = ecc.mult(base, secret_key);
-  }
-  inline auto setCommonKey() -> void {
-    common_key = ecc.mult(partner_key, secret_key);
-  }
-  inline auto send(EccUser& target) -> void {
-    target.partner_key = public_key;
-  }
+  auto setPublicKey() -> void;
+  auto setCommonKey() -> void;
+  auto send(EccUser& target) -> void;
   auto print(std::ostream& os) const -> void;
 };
 
 /**
  * @brief 楕円曲線ディフィー-ヘルマン鍵共有クラス
  * @detail EccUserクラスのアリス, ボブ間で鍵を共有
- *         公開された情報からクラッキングを行う
  */
 template<class F>
 class Ecdh {
  private:
-  EccUser<F> alice, bob;
   auto setEcc() -> void;
  public:
+  EccUser<F> alice, bob;
   Ecdh();
-  inline auto publish() -> void {
-    alice.send(bob), bob.send(alice);
-  }
-  inline auto calc() -> void {
-    alice.setCommonKey(), bob.setCommonKey();
-  }
-  auto crack(std::ostream& os = std::cout) const -> void;
+  auto publish() -> void;
+  auto calc() -> void;
   auto print(std::ostream& os = std::cout) const -> void;
 };
 
 template<class F>
 FInf<F>::FInf() {
-  this->val = std::numeric_limits<decltype(F::modulo())>::max();
+  this->val = std::numeric_limits<decltype(F::order())>::max();
 }
 
 template<class F>
@@ -159,6 +141,11 @@ auto EccPoint<F>::operator!=(const EccPoint& obj) const -> bool {
 template<class F>
 auto EccPoint<F>::operator-() const -> EccPoint<F> {
   return EccPoint(this->x, -this->y);
+}
+
+template<class F>
+inline auto EccPoint<F>::isInfinity() const -> bool {
+  return this->x == FInf<F>() & this->y == FInf<F>();
 }
 
 template<class F>
@@ -195,11 +182,26 @@ auto Ecc<F>::mult(const EccPoint<F>& obj, U n) const -> EccPoint<F> {
 }
 
 template<class F>
+inline auto Ecc<F>::calcLeft(const F& y) const -> F {
+  return ::pow(y, 2);
+}
+
+template<class F>
+inline auto Ecc<F>::calcRight(const F& x) const -> F {
+  return ::pow(x, 3) + this->a * x + this->b;
+}
+
+template<class F>
+inline auto Ecc<F>::isIncluded(const EccPoint<F>& obj) const -> bool {
+  return obj.isInfinity() | this->calcLeft(obj.y) == this->calcRight(obj.x);
+}
+
+template<class F>
 auto Ecc<F>::getParam(F& x, F& y, F& a, F& b) -> void {
   std::random_device rnd;
   std::mt19937_64 mt(rnd());
-  std::uniform_int_distribution<decltype(F::modulo())>
-    rnd_val(0, F::modulo() - 1);
+  std::uniform_int_distribution<decltype(F::order())>
+    rnd_val(0, F::order() - 1);
   auto f = [&]{return F(rnd_val(mt));};
   do {
     x = f(), y = f(), a = f();
@@ -216,9 +218,24 @@ template<class F>
 auto EccUser<F>::setSecretKey() -> void {
   std::random_device rnd;
   std::mt19937_64 mt(rnd());
-  std::uniform_int_distribution<decltype(F::modulo())>
-    rnd_val(1, F::modulo() - 1);
+  std::uniform_int_distribution<decltype(F::order())>
+    rnd_val(1, F::order() - 1);
   this->secret_key = rnd_val(mt);
+}
+
+template<class F>
+inline auto EccUser<F>::setPublicKey() -> void {
+  this->public_key = this->ecc.mult(this->base, this->secret_key);
+}
+
+template<class F>
+inline auto EccUser<F>::setCommonKey() -> void {
+  this->common_key = this->ecc.mult(this->partner_key, this->secret_key);
+}
+
+template<class F>
+inline auto EccUser<F>::send(EccUser<F>& target) -> void {
+  target.partner_key = this->public_key;
 }
 
 template<class F>
@@ -239,8 +256,8 @@ auto Ecdh<F>::setEcc() -> void {
   F x, y, a, b;
   std::random_device rnd;
   std::mt19937_64 mt(rnd());
-  std::uniform_int_distribution<decltype(F::modulo())>
-    rnd_val(0, F::modulo() - 1);
+  std::uniform_int_distribution<decltype(F::order())>
+    rnd_val(0, F::order() - 1);
   auto f = [&]{return F(rnd_val(mt));};
   do {
     x = f(), y = f(), a = f();
@@ -253,18 +270,15 @@ auto Ecdh<F>::setEcc() -> void {
 }
 
 template<class F>
-auto Ecdh<F>::crack(std::ostream& os) const -> void {
-  os << "Cracking now ..." << std::flush;
-  decltype(F::modulo()) alice_secret_key(1);
-  const Ecc<F>& ecc = this->alice.ecc;
-  const EccPoint<F>& base = this->alice.base;
-  EccPoint<F> tmp = base;
-  while(tmp != this->alice.public_key)
-    tmp = ecc.add(tmp, base), alice_secret_key++;
-  EccPoint<F> common_key = ecc.mult(this->bob.public_key, alice_secret_key);
-  os << " done." << std::endl;
-  os << "+ Alice's secret key\t" << alice_secret_key << std::endl;
-  os << "+ Common key\t\t" << common_key << std::endl;
+inline auto Ecdh<F>::publish() -> void {
+  this->alice.send(this->bob);
+  this->bob.send(this->alice);
+}
+
+template<class F>
+inline auto Ecdh<F>::calc() -> void {
+  this->alice.setCommonKey();
+  this->bob.setCommonKey();
 }
 
 template<class F>

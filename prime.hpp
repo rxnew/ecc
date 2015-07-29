@@ -13,7 +13,7 @@ class PrimeGenerator;
 
 /**
  * @brief ミラー-ラビン素数判定法クラス
- * @detail コンパイル時計算対応
+ * @note コンパイル時計算対応
  */
 class MillerRabin {
  private:
@@ -38,7 +38,7 @@ class MillerRabin {
 /**
  * @brief 素数生成クラス
  * @detail 指定した値以上で最小の素数を生成
- *         コンパイル時計算対応
+ * @note コンパイル時計算対応
  */
 class PrimeGenerator {
  private:
