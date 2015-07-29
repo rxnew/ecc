@@ -6,7 +6,7 @@
 
 #include <iostream>
 #include "ecc.hpp"
-#include "UsageSec/src/usage_sec.hpp"
+#include "usage_sec.hpp"
 
 /**
  * @brief 楕円曲線ディフィー-ヘルマン鍵共有テストクラス
