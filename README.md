@@ -1,24 +1,16 @@
 Ecc
 ==============
-What is this?
---------------
-楕円曲線ディフィー-ヘルマン鍵共有 (Elliptic curve Diffie–Hellman key exchange, ECDH) のテストプログラム
+Elliptic curve Diffie–Hellman key exchange (ECDH) test program
 
-===============
-How to use?
+Requirements
 ---------------
-cmake をインストールしてください
-Ubuntu なら以下のコマンドで入ります
-```
-$ sudo apt-get install cmake
-```
+* g++ 4.7 or later
+* cmake 2.8 or later
 
-build ディレクトリ内で以下のコマンドを叩いてください
+How to use
+---------------
 ```
+$ cd build
 $ cmake ..
-```
-
-実行
-```
 $ ./test
 ```
