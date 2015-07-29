@@ -1,3 +1,9 @@
+/**
+ * @file ecc.hpp
+ * @brief 楕円曲線暗号クラスヘッダ
+ * @date 2015.07.29
+ */
+
 #pragma once
 
 #include <iostream>
@@ -20,25 +26,30 @@ template<class F>
 class EccUser;
 
 template<class F>
-class EccNetwork;
+class Ecdh;
 
-/* 無限大 */
+/**
+ * @brief 有限体クラスの無限大
+ * @detail 無限遠点の値として例外的に使用する
+ */
 template<class F>
-class FInf: public F {
+class FInf : public F {
  public:
   FInf();
 };
 
-/* 楕円曲線上の点 */
+/**
+ * @brief 楕円曲線上の点
+ */
 template<class F>
 class EccPoint {
  private:
   F x, y;
  public:
-  EccPoint(): x(FInf<F>()), y(FInf<F>()) {}
+  EccPoint() : x(FInf<F>()), y(FInf<F>()) {}
   template<class T>
-  EccPoint(T x, T y): x(F(x)), y(F(y)) {}
-  EccPoint(const F& x, const F& y): x(x), y(y) {}
+  EccPoint(T x, T y) : x(F(x)), y(F(y)) {}
+  EccPoint(const F& x, const F& y) : x(x), y(y) {}
   auto operator==(const EccPoint& obj) const -> bool;
   auto operator!=(const EccPoint& obj) const -> bool;
   auto operator-() const -> EccPoint;
@@ -51,14 +62,19 @@ class EccPoint {
   friend Ecc<F>;
 };
 
-/* 楕円曲線 */
+/**
+ * @brief 楕円曲線暗号系クラス
+ * @detail 楕円曲線 y^2 = x^3 + ax + b
+ *         有限体Fをテンプレート引数とする
+ *         楕円曲線暗号系での加算と乗算を行う
+ */
 template<class F>
 class Ecc {
  private:
   F a, b;
  public:
   Ecc() {}
-  Ecc(const F& a, const F& b): a(a), b(b) {}
+  Ecc(const F& a, const F& b) : a(a), b(b) {}
   auto add(const EccPoint<F>& obj1, const EccPoint<F>& obj2) const
     -> EccPoint<F>;
   template<class U>
@@ -75,6 +91,12 @@ class Ecc {
   static auto getParam(F& x, F& y, F& a, F& b) -> void;
 };
 
+/**
+ * @brief 楕円曲線暗号ユーザクラス
+ * @detail 楕円曲線暗号で利用する鍵を管理
+ *         有限体Fをテンプレート引数とする
+ *         初期化時に秘密鍵のみ生成
+ */
 template<class F>
 class EccUser {
  private:
@@ -97,13 +119,18 @@ class EccUser {
   auto print(std::ostream& os) const -> void;
 };
 
+/**
+ * @brief 楕円曲線ディフィー-ヘルマン鍵共有クラス
+ * @detail EccUserクラスのアリス, ボブ間で鍵を共有
+ *         公開された情報からクラッキングを行う
+ */
 template<class F>
-class EccNetwork {
+class Ecdh {
  private:
   EccUser<F> alice, bob;
   auto setEcc() -> void;
  public:
-  EccNetwork();
+  Ecdh();
   inline auto publish() -> void {
     alice.send(bob), bob.send(alice);
   }
@@ -112,12 +139,6 @@ class EccNetwork {
   }
   auto crack(std::ostream& os = std::cout) const -> void;
   auto print(std::ostream& os = std::cout) const -> void;
-};
-
-template<class F>
-class EccTest {
- public:
-  static auto execute() -> void;
 };
 
 template<class F>
@@ -207,14 +228,14 @@ auto EccUser<F>::print(std::ostream& os) const -> void {
 }
 
 template<class F>
-EccNetwork<F>::EccNetwork() {
+Ecdh<F>::Ecdh() {
   this->setEcc();
   this->alice.setPublicKey();
   this->bob.setPublicKey();
 }
 
 template<class F>
-auto EccNetwork<F>::setEcc() -> void {
+auto Ecdh<F>::setEcc() -> void {
   F x, y, a, b;
   std::random_device rnd;
   std::mt19937_64 mt(rnd());
@@ -232,7 +253,7 @@ auto EccNetwork<F>::setEcc() -> void {
 }
 
 template<class F>
-auto EccNetwork<F>::crack(std::ostream& os) const -> void {
+auto Ecdh<F>::crack(std::ostream& os) const -> void {
   os << "Cracking now ..." << std::flush;
   decltype(F::modulo()) alice_secret_key(1);
   const Ecc<F>& ecc = this->alice.ecc;
@@ -247,7 +268,7 @@ auto EccNetwork<F>::crack(std::ostream& os) const -> void {
 }
 
 template<class F>
-auto EccNetwork<F>::print(std::ostream& os) const -> void {
+auto Ecdh<F>::print(std::ostream& os) const -> void {
   os << "* Status" << std::endl;
   os << "\t" << "Secret key\t" << "Public key\t\t" << "Common key" << std::endl;
   os << "Alice\t";

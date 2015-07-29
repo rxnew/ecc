@@ -1,35 +1,49 @@
+/**
+ * @file prime.hpp
+ * @brief 素数判定, 素数生成クラスヘッダ
+ * @date 2015.07.29
+ */
+
 #pragma once
 
-#include <random>
 #include <cassert>
 
 class MillerRabin;
 class PrimeGenerator;
 
+/**
+ * @brief ミラー-ラビン素数判定法クラス
+ * @detail コンパイル時計算対応
+ */
 class MillerRabin {
  private:
-  constexpr static auto k = 100;
+  static constexpr auto k = 100;
   template<class T>
-  constexpr static auto pow(T n, T k, T q) -> T;
+  static constexpr auto pow(T n, T k, T q) -> T;
   template<class T>
-  constexpr static auto exponent(T d) -> T;
+  static constexpr auto exponent(T d) -> T;
   template<class T>
-  constexpr static auto stride(T s) -> T;
+  static constexpr auto stride(T s) -> T;
   template<class T, class U>
-  constexpr static auto loop(T val, T y, U i) -> bool;
+  static constexpr auto test_impl_inner(T val, T y, U i) -> bool;
   template<class T>
-  constexpr static auto test(T val, T a, T s, T t, T y) -> bool;
+  static constexpr auto test_impl(T val, T a, T s, T t, T y) -> bool;
   template<class T>
-  constexpr static auto set(T val, T a, T t) -> bool;
+  static constexpr auto test(T val, T a, T t) -> bool;
  public:
   template<class T>
-  constexpr static auto isPrime(T val) -> bool;
+  static constexpr auto isPrime(T val) -> bool;
 };
 
+/**
+ * @brief 素数生成クラス
+ * @detail 指定した値以上で最小の素数を生成
+ *         コンパイル時計算対応
+ */
 class PrimeGenerator {
  private:
   template<class T>
-  static constexpr auto test(T odd) -> T;
+  static constexpr auto create_impl(T odd) -> T;
  public:
   template<class T>
   static constexpr auto create(T min) -> T;
@@ -54,42 +68,44 @@ constexpr auto MillerRabin::stride(T s) -> T {
 }
 
 template<class T, class U>
-constexpr auto MillerRabin::loop(T val, T y, U i) -> bool {
+constexpr auto MillerRabin::test_impl_inner(T val, T y, U i) -> bool {
   return !i ? true :
     (y == val - 1 ? false :
-     MillerRabin::loop(val, y * y % val, i - 1));
+     MillerRabin::test_impl_inner(val, y * y % val, i - 1));
 }
 
 template<class T>
-constexpr auto MillerRabin::test(T val, T a, T s, T t, T y) -> bool {
+constexpr auto MillerRabin::test_impl(T val, T a, T s, T t, T y) -> bool {
   return a >= val ? true :
     (y != 1 && y != val - 1 &&
-     MillerRabin::loop(val, y, MillerRabin::k) ? false :
-     MillerRabin::test(val, a + s, s, t, MillerRabin::pow(a, t, val)));
+     MillerRabin::test_impl_inner(val, y, MillerRabin::k) ? false :
+     MillerRabin::test_impl(val, a + s, s, t, MillerRabin::pow(a, t, val)));
 }
 
 template<class T>
-constexpr auto MillerRabin::set(T val, T a, T t) -> bool {
-  return MillerRabin::test(val, a, MillerRabin::stride(val / MillerRabin::k),
-                           t, MillerRabin::pow(a, t, val));
+constexpr auto MillerRabin::test(T val, T a, T t) -> bool {
+  return MillerRabin::test_impl(val, a,
+                                MillerRabin::stride(val / MillerRabin::k),
+                                t, MillerRabin::pow(a, t, val));
 }
 
 template<class T>
 constexpr auto MillerRabin::isPrime(T val) -> bool {
   return val == 1 || val & 1 == 0 ? false :
     (val == 2 ? true :
-     MillerRabin::set(val, T(2), MillerRabin::exponent(val - 1)));
+     MillerRabin::test(val, T(2), MillerRabin::exponent(val - 1)));
 }
 
 template<class T>
-constexpr auto PrimeGenerator::test(T odd) -> T {
-  return MillerRabin::isPrime(odd) ? odd : PrimeGenerator::test(odd + 2);
+constexpr auto PrimeGenerator::create_impl(T odd) -> T {
+  return MillerRabin::isPrime(odd) ? odd :
+    PrimeGenerator::create_impl(odd + 2);
 }
 
 template<class T>
 constexpr auto PrimeGenerator::create(T min) -> T {
   return min == 2 ? min :
     (min & 1 ?
-     PrimeGenerator::test(min) :
-     PrimeGenerator::test(min + 1));
+     PrimeGenerator::create_impl(min) :
+     PrimeGenerator::create_impl(min + 1));
 }

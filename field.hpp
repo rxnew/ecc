@@ -1,21 +1,38 @@
+/**
+ * @file field.hpp
+ * @brief 有限体クラスヘッダ
+ * @date 2015.07.29
+ */
+
 #pragma once
 
 #include <iostream>
 #include <iomanip>
 #include <cassert>
+#include "prime.hpp"
 
 template<class T, T q>
 class F;
 
-/* 正の剰余 */
+/**
+ * @brief 正の剰余を計算
+ * @param[in] n 被剰余数
+ * @param[in] q 法
+ * @return nの正の剰余
+ */
 template<class T>
-inline auto mod(T n, T q) -> T {
-  return (n %= q) < 0? n + q: n;
+inline auto mod(T n, const T& q) -> T {
+  return (n %= q) < 0 ? n + q : n;
 }
 
-/* 法qでの逆元 */
+/**
+ * @brief 法qでの逆元を計算
+ * @param[in] n 元
+ * @param[in] q 法
+ * @return 法qでのnの逆元
+ */
 template<class T>
-auto invert(T n, T q) -> T {
+auto invert(const T& n, const T& q) -> T {
   T r0 = q, r1 = n;
   T a0 = 1, a1 = 0;
   T b0 = 0, b1 = 1;
@@ -31,32 +48,42 @@ auto invert(T n, T q) -> T {
   return (b0 + q) % q;
 }
 
-/* 繰り返し二乗法 */
+/**
+ * @brief 繰り返し二乗法
+ * 指数が有限体クラス
+ * @param[in] n 基数
+ * @param[in] k 指数
+ * @return nのk乗
+ */
+template<class T, class U, U q>
+inline auto pow(const T& n, const F<U, q>& k) -> T {
+  std::cout << "test" << std::endl;
+  return ::pow(n, static_cast<U>(k));
+}
+
+/**
+ * @brief 繰り返し二乗法
+ * @param[in] n 基数
+ * @param[in] k 指数
+ * @return nのk乗
+ */
 template<class T, class U>
-auto pow(const T& n, U k) -> T {
+auto pow(const T& n, const U& k) -> T {
   if(k == 0) return T(1);
   T res = ::pow(n * n, k >> 1);
   if(k & 1) res = res * n;
   return res;
 }
 
-template<class T, class U, U q>
-inline auto pow(const T& n, const F<U, q>& k) -> T {
-  return ::pow(n, static_cast<U>(k));
-}
-
-template<class T>
-T pow(T n, T k, T q) {
-  if(k == 0) return 1;
-  n = ::mod(n, q);
-  T res = ::mod(::pow(n * n % q, k >> 1, q), q);
-  if(k & 1) res = ::mod(res * n, q);
-  return res;
-}
-
-/* 法qでの平方根 */
+/**
+ * @brief 法qでの平方根を計算
+ * @param[in] a 平方数
+ * @return 法qでのaの平方根
+ */
 template<class T, T q>
 auto sqrt(const F<T, q>& a) -> F<T, q> {
+  static_assert(MillerRabin::isPrime(q),
+                "The modulo is not prime number.");
   using F = F<T, q>;
   F n(1);
   while(n.legendre() != -1) n++;
@@ -67,25 +94,28 @@ auto sqrt(const F<T, q>& a) -> F<T, q> {
   F j[alpha - 1];
   auto f = [&](const F& x, T i){
     return ::pow(::pow(x, 2) / a, ::pow(F(2), alpha - i - 2));};
-  j[0] = F(f(r, 0) == 1? 0: 1);
+  j[0] = F(f(r, 0) == 1 ? 0 : 1);
   F j_sum = j[0];
   F b_tmp(1);
   for(T i = 1; i < alpha - 1; i++) {
     b_tmp *= ::pow(b, (::pow(F(2), i - 1) * j[i - 1]));
-    j[i] = F(f(b_tmp * r, i) == 1? 0: 1);
+    j[i] = F(f(b_tmp * r, i) == 1 ? 0 : 1);
     j_sum += (::pow(F(2), i) * j[i]);
   }
   return ::pow(b, j_sum) * r;
 }
 
-/* 有限体Fq */
+/**
+ * @brief 有限体クラス
+ * @detail 法の型と法の値をテンプレート引数とする
+ */
 template<class T, T q>
 class F {
  protected:
   T val;
  public:
-  F(): val(0) {}
-  F(T val): val(::mod(val, q)) {}
+  F() : val(0) {}
+  F(T val) : val(::mod(val, q)) {}
   virtual ~F() {}
   auto operator==(const F& obj) const -> bool;
   auto operator==(T val) const -> bool;
@@ -105,7 +135,7 @@ class F {
   }
   inline auto legendre() const -> int {
     int res = ::pow(*this, (q - 1) / 2).val;
-    return res == q - 1? -1: res;
+    return res == q - 1 ? -1 : res;
   }
   template<class U, U N>
   friend auto operator<<(std::ostream& os, const F<U, N>& obj)
