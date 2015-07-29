@@ -1,21 +1,18 @@
 cmake_minimum_required(VERSION 2.8)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/UsageSec)
-
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/UsageSec/include
 )
 
 link_directories(
-  ${CMAKE_CURRENT_SOURCE_DIR}/UsageSec/lib
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib
 )
 
-add_executable(Main
+add_executable(test
   ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp
 )
 
-target_link_libraries(Main
+target_link_libraries(test
   usec
 )
 
