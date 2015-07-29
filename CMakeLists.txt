@@ -9,7 +9,7 @@ link_directories(
 )
 
 add_executable(test
-  ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/test.cpp
 )
 
 target_link_libraries(test
